@@ -18,7 +18,7 @@ STREAM_URLS = {
 }
 
 FIELD_MAP = {s: s for s in STREAM_URLS.keys()}
-SEND_INTERVAL = 10
+SEND_INTERVAL = 5
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 session = requests.Session()
@@ -75,4 +75,5 @@ if __name__ == "__main__":
         send_data()
         logging.info(f"Yakit: {current_data['depo_yakit_miktar']} | Sayac: {current_data['counter']}")
         time.sleep(SEND_INTERVAL)
+
 
