@@ -1,24 +1,16 @@
 name: Tandem 7/24 Streamer
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *' # 5 dakikada bir değil, sadece her 6 saatte bir çalıştır
-  workflow_dispatch:      # İstediğinde manuel başlatabilmen için
+    - cron: '0 */6 * * *'
+
+# BURAYI EKLE: Çakışan eski botları otomatik kapatır
+concurrency:
+  group: tandem-stream
+  cancel-in-progress: true
 
 jobs:
-  build:
+  run-python:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies
-        run: pip install requests
-
-      - name: Run Tandem Script
-        run: python Test.py
+    # ... geri kalan her şey aynı kalsın ...
