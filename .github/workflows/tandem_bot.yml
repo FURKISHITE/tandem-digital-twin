@@ -2,8 +2,8 @@ name: Tandem 7/24 Streamer
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # Her 5 dakikada bir otomatik çalıştır
-  workflow_dispatch:      # Manuel başlatma butonu
+    - cron: '0 */6 * * *' # 5 dakikada bir değil, sadece her 6 saatte bir çalıştır
+  workflow_dispatch:      # İstediğinde manuel başlatabilmen için
 
 jobs:
   build:
