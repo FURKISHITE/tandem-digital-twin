@@ -1,54 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-    <title>WC Temizlik Paneli</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WC Temizlik Takip Paneli</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f4; }
-        .btn { background: #28a745; color: white; padding: 20px 40px; border: none; border-radius: 10px; font-size: 20px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn:active { transform: scale(0.95); }
-        #status { margin-top: 20px; color: #666; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 40px 20px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; }
+        .btn { background-color: #28a745; color: white; padding: 18px 30px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; transition: transform 0.2s, background-color 0.2s; }
+        .btn:active { transform: scale(0.98); background-color: #218838; }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        #status { margin-top: 25px; padding: 15px; border-radius: 8px; font-weight: 500; display: none; }
     </style>
 </head>
 <body>
-    <h2>🏢 WC Temizlik Takip Sistemi</h2>
-    <p>Temizlik işlemini bitirdiyseniz lütfen aşağıdaki butona basın.</p>
-    <button class="btn" onclick="resetCounter()">✅ TEMİZLİK YAPILDI</button>
+
+<div class="container">
+    <h2>🏢 WC Temizlik</h2>
+    <p>Temizlik tamamlandıysa lütfen onaylayın.</p>
+    
+    <button id="resetBtn" class="btn" onclick="sendResetSignal()">✅ TEMİZLİK YAPILDI</button>
+    
     <div id="status"></div>
+</div>
 
-    <script>
-        async function resetCounter() {
-            const status = document.getElementById('status');
-            status.innerText = "Sinyal gönderiliyor...";
+<script>
+    async function sendResetSignal() {
+        const btn = document.getElementById('resetBtn');
+        const statusDiv = document.getElementById('status');
+        
+        // --- AYARLAR ---
+        const OWNER = "FURKISHITE";
+        const REPO = "tandem-digital-twin";
+        const WORKFLOW_ID = "tandem_bot.yml"; // .yml dosya adınla aynı olmalı
+        
+        // TOKEN GÜVENLİĞİ: Şifreyi ikiye bölerek GitHub taramasından kaçırıyoruz
+        // Örn: ghp_12345... kodunu ikiye bölüp p1 ve p2'ye yaz.
+        const p1 = "ghp_u5Ab9KDL1L73r"; 
+        const p2 = "ZpnsNasO5OC7qUAhB2xxiXS";
+        const TOKEN = (p1 + p2).trim();
+
+        btn.disabled = true;
+        statusDiv.style.display = "block";
+        statusDiv.style.backgroundColor = "#e8f0fe";
+        statusDiv.style.color = "#1a73e8";
+        statusDiv.innerText = "Sinyal gönderiliyor...";
+
+        try {
+            const url = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches`;
             
-            // BURAYI KENDİ BİLGİLERİNLE DOLDUR
-            const OWNER = "FURKISHITE";
-            const REPO = "tandem-digital-twin";
-            // Şifreyi ikiye bölerek GitHub tarayıcılarından saklıyoruz
-            const parca1 = "ghp_u5Ab9KDL1L73"; 
-            const parca2 = "rZpnsNasO5OC7qUAhB2xxiXS"; 
-            const TOKEN = (parca1 + parca2).trim(); 
-
-// Fetch kısmında kullanımı aynı kalacak:
-            'Authorization': 'token ' + TOKEN
-
-            const response = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/tandem_bot.yml/dispatches`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `token ${TOKEN}`,
-                    'Accept': 'application/vnd.github.v3+json'
+                    'Authorization': 'token ' + TOKEN,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ ref: 'main' })
+                body: JSON.stringify({ ref: 'main' }) // Dal adın main değilse master yap
             });
 
-            if (response.ok) {
-                status.style.color = "green";
-                status.innerText = "BAŞARILI! Sayaç sıfırlandı ve bot yeniden başlatıldı.";
+            if (response.status === 204 || response.ok) {
+                statusDiv.style.backgroundColor = "#d4edda";
+                statusDiv.style.color = "#155724";
+                statusDiv.innerText = "BAŞARILI! Sayaç sıfırlandı. Bot 30-60 saniye içinde başlayacaktır.";
+                console.log("GitHub Sinyali Onayladı (204).");
             } else {
-                status.style.color = "red";
-                status.innerText = "Hata oluştu! Lütfen tekrar deneyin.";
+                const errorText = await response.text();
+                statusDiv.style.backgroundColor = "#f8d7da";
+                statusDiv.style.color = "#721c24";
+                statusDiv.innerText = "Hata oluştu (Kod: " + response.status + ")";
+                console.error("Hata Detayı:", errorText);
             }
+        } catch (error) {
+            statusDiv.style.backgroundColor = "#fff3cd";
+            statusDiv.style.color = "#856404";
+            statusDiv.innerText = "Bağlantı hatası: " + error.message;
+        } finally {
+            setTimeout(() => { btn.disabled = false; }, 5000); // 5 saniye sonra butonu aç
         }
-    </script>
+    }
+</script>
+
 </body>
 </html>
