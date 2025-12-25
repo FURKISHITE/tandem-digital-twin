@@ -57,7 +57,7 @@ def update_logic():
         current_data[key] = round(new_temp, 2)
     
     # 3) YAKIT (Sürekli Azalma)
-    current_data["depo_yakit_miktar"] = round(current_data["depo_yakit_miktar"] - random.uniform(0.5, 1.5), 2)
+    current_data["depo_yakit_miktar"] = round(current_data["depo_yakit_miktar"] - random.uniform(3, 5), 2)
     if current_data["depo_yakit_miktar"] < 50:
         current_data["depo_yakit_miktar"] = 850.0
 
@@ -77,3 +77,4 @@ if __name__ == "__main__":
         send_data()
         logging.info(f"Bayan WC: {current_data['Temperature_BAYAN_WC']} | Yakıt: {current_data['depo_yakit_miktar']}")
         time.sleep(SEND_INTERVAL)
+
