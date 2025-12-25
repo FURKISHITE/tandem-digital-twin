@@ -8,7 +8,7 @@ STREAM_URLS = {
     "Kapi_giris_sayaci": "https://:mVsETGYMTx-q0CyNNDSRZg@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAKSSpAoeTktcqA_ugttWuNsAAAAA",
     "Temperature_AILE_ENG_WC": "https://:E-vsMlTLSlqSpRgaEwarBg@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAI96sXZqh0ohlpI9anZzQJAAAAAA",
     "Temperature_BAY_WC": "https://:-CZYHDeORe-TQ3O63PDajw@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAKBlgzb7HEeRhcMVmYilqPMAAAAA",
-    "Temperature_BAYAN_WC": "https://:wAqlPCX3RYioKK-R0J8DrA@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAIYMHBDULk5mmi7_5GMEq8AAAAA",
+    "Temperature_BAYAN_WC": "https://:wAqlPCX3RYioKK-R0J8DrA@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAIYMHBDULk5mmiq7_5GMEq8AAAAA",
     "Temperature_DEPO": "https://:jjvOi6LjR_uA9KXjzdY4YQ@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAALcp2i9jskQjmY8UuSqIUpsAAAAA",
     "Temperature_SOGUK_ODA1_Z41": "https://:_3-EpqdJR96YjzU4OCQaXA@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAGFxapBLb0kSjBBAD8-qaKEAAAAA",
     "Temperature_SOGUK_ODA2_Z40": "https://:nkN8jwrXRi-Juf6L7BKkeA@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAABahp9wNUEUDmjJrzl160SwAAAAA",
@@ -77,4 +77,5 @@ if __name__ == "__main__":
         send_data()
         logging.info(f"Bayan WC: {current_data['Temperature_BAYAN_WC']} | Yakıt: {current_data['depo_yakit_miktar']}")
         time.sleep(SEND_INTERVAL)
+
 
