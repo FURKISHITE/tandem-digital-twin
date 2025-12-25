@@ -3,7 +3,7 @@ import logging
 import requests
 import random
 
-# 1) Stream URL'lerin
+# --- 1) STREAM URL'LERİ (Aynı Kalıyor) ---
 STREAM_URLS = {
     "Kapi_giris_sayaci": "https://:mVsETGYMTx-q0CyNNDSRZg@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAKSSpAoeTktcqA_ugttWuNsAAAAA",
     "Temperature_AILE_ENG_WC": "https://:E-vsMlTLSlqSpRgaEwarBg@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAI96sXZqh0ohlpI9anZzQJAAAAAA",
@@ -18,35 +18,62 @@ STREAM_URLS = {
 }
 
 FIELD_MAP = {s: s for s in STREAM_URLS.keys()}
-SEND_INTERVAL = 5 # Veriler her 5 saniyede bir gitsin (Daha akıcı olur)
+SEND_INTERVAL = 15 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 session = requests.Session()
 
-current_data = {
-    "Temperature_AILE_ENG_WC": 22.5, "Temperature_BAY_WC": 21.0, "Temperature_BAYAN_WC": 21.5,
-    "Temperature_DEPO": 19.8, "Temperature_SOGUK_ODA1_Z41": -18.0, "Temperature_SOGUK_ODA2_Z40": -18.4,
-    "Temperature_WC_HOL": 23.0, "Temperature_MARKET": 20.5, "depo_yakit_miktar": 850.0, "counter": 0
+# Merkez sıcaklık değerleri (Referans noktası)
+BASE_TEMPS = {
+    "Temperature_AILE_ENG_WC": 22.0,
+    "Temperature_BAY_WC": 21.5,
+    "Temperature_BAYAN_WC": 21.8,
+    "Temperature_WC_HOL": 22.2,
+    "Temperature_MARKET": 20.0,
+    "Temperature_DEPO": 18.5,
+    "Temperature_SOGUK_ODA1_Z41": -18.0,
+    "Temperature_SOGUK_ODA2_Z40": -18.2
 }
 
-def update_and_send():
-    if random.random() < 0.2: current_data["counter"] += 1
-    for key in current_data:
-        if "Temperature" in key:
-            current_data[key] = round(current_data[key] + random.uniform(-0.05, 0.05), 2)
-    current_data["depo_yakit_miktar"] = round(current_data["depo_yakit_miktar"] - random.uniform(2, 4), 2)
-    if current_data["depo_yakit_miktar"] < 50: current_data["depo_yakit_miktar"] = 850.0
+current_data = {**BASE_TEMPS, "depo_yakit_miktar": 850.0, "counter": 0}
 
+def update_logic():
+    # 1) KAPI SAYACI
+    if random.random() < 0.2:
+        current_data["counter"] += 1
+    
+    # 2) SICAKLIKLAR (+3 / -3 Dalgalanma Mantığı)
+    for key, base_temp in BASE_TEMPS.items():
+        # Mevcut değerden +/- 0.5 derece gibi daha büyük bir adım atar
+        change = random.uniform(-0.5, 0.5)
+        new_temp = current_data[key] + change
+        
+        # Eğer yeni sıcaklık merkezden 3 derece uzaklaşırsa, sınıra takılır
+        if new_temp > base_temp + 3:
+            new_temp = base_temp + 3
+        elif new_temp < base_temp - 3:
+            new_temp = base_temp - 3
+            
+        current_data[key] = round(new_temp, 2)
+    
+    # 3) YAKIT (Sürekli Azalma)
+    current_data["depo_yakit_miktar"] = round(current_data["depo_yakit_miktar"] - random.uniform(0.5, 1.5), 2)
+    if current_data["depo_yakit_miktar"] < 50:
+        current_data["depo_yakit_miktar"] = 850.0
+
+def send_data():
     for s_name, url in STREAM_URLS.items():
-        val = current_data["counter"] if s_name == "Kapi_giris_sayaci" else current_data[s_name]
-        try: session.post(url, json={FIELD_MAP[s_name]: float(val)}, timeout=5)
-        except: pass
+        val = current_data.get(s_name, current_data["counter"])
+        try:
+            payload = {FIELD_MAP[s_name]: float(val)}
+            session.post(url, json=payload, timeout=5)
+        except:
+            pass
 
 if __name__ == "__main__":
     start_run = time.time()
-    print("Uzun Süreli Bulut Akışı Başladı (6 Saat)...")
-    
-    # 21000 saniye = Yaklaşık 5.8 saat boyunca döngüde kalır
     while time.time() - start_run < 21000:
-        update_and_send()
+        update_logic()
+        send_data()
+        logging.info(f"Bayan WC: {current_data['Temperature_BAYAN_WC']} | Yakıt: {current_data['depo_yakit_miktar']}")
         time.sleep(SEND_INTERVAL)
