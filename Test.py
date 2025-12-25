@@ -18,7 +18,7 @@ STREAM_URLS = {
 }
 
 FIELD_MAP = {s: s for s in STREAM_URLS.keys()}
-SEND_INTERVAL = 15 
+SEND_INTERVAL = 10
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 session = requests.Session()
@@ -36,7 +36,7 @@ current_data = {**BASE_TEMPS, "depo_yakit_miktar": 850.0, "counter": 0}
 
 def update_logic():
     # 1) SAYAÇ: %20 ihtimalle sadece artar
-    if random.random() < 0.2:
+    if random.random() < 0.7:
         current_data["counter"] += 1
     
     # 2) SICAKLIKLAR: Merkez değerden +/- 3 derece dalgalanır
@@ -52,7 +52,7 @@ def update_logic():
         current_data[key] = round(new_val, 2)
     
     # 3) YAKIT: Sürekli düşüş, 50'de dolum
-    current_data["depo_yakit_miktar"] = round(current_data["depo_yakit_miktar"] - random.uniform(0.5, 1.5), 2)
+    current_data["depo_yakit_miktar"] = round(current_data["depo_yakit_miktar"] - random.uniform(5, 10), 2)
     if current_data["depo_yakit_miktar"] < 50:
         current_data["depo_yakit_miktar"] = 850.0
 
@@ -75,3 +75,4 @@ if __name__ == "__main__":
         send_data()
         logging.info(f"Yakit: {current_data['depo_yakit_miktar']} | Sayac: {current_data['counter']}")
         time.sleep(SEND_INTERVAL)
+
