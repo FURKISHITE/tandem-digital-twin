@@ -1,1 +1,31 @@
+name: Tandem 7/24 Streamer
 
+on:
+  workflow_dispatch:      # Web sitesindeki butonun çalışması için şart
+  schedule:
+    - cron: '0 */6 * * *' # Her 6 saatte bir otomatik yenilenir
+
+# --- ÇAKIŞMA ÖNLEYİCİ AYAR ---
+# Bu kısım, butona basıldığında eski çalışan botu otomatik durdurur.
+concurrency:
+  group: tandem-stream
+  cancel-in-progress: true
+
+jobs:
+  run-python:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Depoyu Klonla
+        uses: actions/checkout@v3
+
+      - name: Python Kurulumu
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Gerekli Kütüphaneleri Kur
+        run: pip install requests
+
+      - name: Botu Başlat
+        run: python Test.py
