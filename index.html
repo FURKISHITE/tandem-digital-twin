@@ -3,30 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WC Temizlik Takip Paneli</title>
+    <title>Opet İstasyon Yönetimi</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 40px 20px; background-color: #f0f2f5; color: #333; }
-        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; margin-bottom: 10px; }
-        p { color: #666; margin-bottom: 30px; }
-        .btn { background-color: #28a745; color: white; padding: 18px 30px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; transition: transform 0.2s, background-color 0.2s; }
-        .btn:active { transform: scale(0.98); background-color: #218838; }
+        :root {
+            --opet-blue: #004990;
+            --opet-yellow: #FFC20E;
+            --opet-bg: #f4f6f9;
+        }
+
+        body { 
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--opet-bg); 
+            color: #333; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Üst Bar Tasarımı */
+        .header-bar {
+            width: 100%;
+            background-color: var(--opet-blue);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border-bottom: 5px solid var(--opet-yellow);
+        }
+
+        .header-title {
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            letter-spacing: 1px;
+        }
+
+        .container { 
+            width: 90%;
+            max-width: 400px; 
+            background: white; 
+            padding: 40px 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08); 
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        h2 { color: var(--opet-blue); margin-top: 0; }
+        p { color: #666; font-size: 14px; margin-bottom: 30px; }
+
+        /* Form Elemanları */
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #444;
+            font-size: 13px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--opet-blue);
+        }
+
+        .btn { 
+            background-color: var(--opet-blue); 
+            color: white; 
+            padding: 15px 30px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 10px;
+            transition: background-color 0.3s, transform 0.2s; 
+        }
+
+        .btn:hover { background-color: #003366; }
+        .btn:active { transform: scale(0.98); }
         .btn:disabled { background-color: #ccc; cursor: not-allowed; }
-        #status { margin-top: 25px; padding: 15px; border-radius: 8px; font-weight: 500; display: none; }
+
+        /* Temizlik Butonu Özel Stil */
+        .clean-btn {
+            background-color: #28a745; /* Yeşil kalabilir veya Opet Sarısı yapılabilir */
+        }
+        .clean-btn:hover { background-color: #218838; }
+
+        .logout-link {
+            display: block;
+            margin-top: 20px;
+            color: #999;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        #status { margin-top: 20px; padding: 15px; border-radius: 8px; font-size: 14px; display: none; }
+        
+        /* Ekran Kontrolü */
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>🏢 WC Temizlik</h2>
-    <p>Temizlik tamamlandıysa lütfen onaylayın.</p>
-    
-    <button id="resetBtn" class="btn" onclick="sendResetSignal()">✅ TEMİZLİK YAPILDI</button>
-    
-    <div id="status"></div>
-</div>
+    <div class="header-bar">
+        <span class="header-title">OPET | TESİS YÖNETİMİ</span>
+    </div>
+
+    <div id="loginScreen" class="container">
+        <h2>Personel Girişi</h2>
+        <p>Lütfen yetkili kullanıcı bilgilerinizi giriniz.</p>
+        
+        <div class="input-group">
+            <label>Kullanıcı Adı</label>
+            <input type="text" id="username" placeholder="Örn: admin">
+        </div>
+        
+        <div class="input-group">
+            <label>Şifre</label>
+            <input type="password" id="password" placeholder="******">
+        </div>
+
+        <button class="btn" onclick="checkLogin()">GİRİŞ YAP</button>
+        <p id="loginError" style="color:red; font-size:13px; display:none; margin-top:10px;">Hatalı kullanıcı adı veya şifre!</p>
+    </div>
+
+    <div id="dashboardScreen" class="container hidden">
+        <h2 style="border-bottom: 2px solid var(--opet-yellow); padding-bottom: 10px; display:inline-block;">WC Temizlik Takibi</h2>
+        <p>İstasyon: <strong>Ataşehir Opet</strong><br>Bölge: <strong>WC - Erkek</strong></p>
+        
+        <div style="background:#eef; padding:15px; border-radius:8px; margin-bottom:20px; color:#004990;">
+            📝 Temizlik işlemi tamamlandıysa aşağıdaki butona basarak sistemi sıfırlayınız.
+        </div>
+        
+        <button id="resetBtn" class="btn clean-btn" onclick="sendResetSignal()">✅ TEMİZLİK YAPILDI</button>
+        
+        <div id="status"></div>
+
+        <a href="#" class="logout-link" onclick="location.reload()">Çıkış Yap</a>
+    </div>
 
 <script>
+    // --- GİRİŞ KONTROLÜ ---
+    function checkLogin() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        const err = document.getElementById('loginError');
+
+        // BELİRLENEN KULLANICI BİLGİLERİ
+        if (u === "admin" && p === "123456") {
+            // Giriş Başarılı
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+        } else {
+            // Hata
+            err.style.display = 'block';
+            setTimeout(() => { err.style.display = 'none'; }, 3000);
+        }
+    }
+
+    // --- GITHUB API SİNYALİ ---
     async function sendResetSignal() {
         const btn = document.getElementById('resetBtn');
         const statusDiv = document.getElementById('status');
@@ -34,19 +189,19 @@
         // --- AYARLAR ---
         const OWNER = "FURKISHITE";
         const REPO = "tandem-digital-twin";
-        const WORKFLOW_ID = "tandem_bot.yml"; // .yml dosya adınla aynı olmalı
+        const WORKFLOW_ID = "tandem_bot.yml"; 
         
-        // TOKEN GÜVENLİĞİ: Şifreyi ikiye bölerek GitHub taramasından kaçırıyoruz
-        // Örn: ghp_12345... kodunu ikiye bölüp p1 ve p2'ye yaz.
+        // TOKEN GÜVENLİĞİ
         const p1 = "ghp_u5Ab9KDL1L73r"; 
         const p2 = "ZpnsNasO5OC7qUAhB2xxiXS";
         const TOKEN = (p1 + p2).trim();
 
         btn.disabled = true;
+        btn.innerHTML = "⏳ İşleniyor...";
         statusDiv.style.display = "block";
         statusDiv.style.backgroundColor = "#e8f0fe";
-        statusDiv.style.color = "#1a73e8";
-        statusDiv.innerText = "Sinyal gönderiliyor...";
+        statusDiv.style.color = "#004990";
+        statusDiv.innerText = "Sisteme sinyal gönderiliyor...";
 
         try {
             const url = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches`;
@@ -58,13 +213,13 @@
                     'Accept': 'application/vnd.github.v3+json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ ref: 'main' }) // Dal adın main değilse master yap
+                body: JSON.stringify({ ref: 'main' }) 
             });
 
             if (response.status === 204 || response.ok) {
                 statusDiv.style.backgroundColor = "#d4edda";
                 statusDiv.style.color = "#155724";
-                statusDiv.innerText = "BAŞARILI! Sayaç sıfırlandı. Bot 30-60 saniye içinde başlayacaktır.";
+                statusDiv.innerHTML = "<strong>BAŞARILI!</strong><br>Sayaç sıfırlandı. Opet Tandem sistemi güncelleniyor.";
                 console.log("GitHub Sinyali Onayladı (204).");
             } else {
                 const errorText = await response.text();
@@ -78,9 +233,19 @@
             statusDiv.style.color = "#856404";
             statusDiv.innerText = "Bağlantı hatası: " + error.message;
         } finally {
-            setTimeout(() => { btn.disabled = false; }, 5000); // 5 saniye sonra butonu aç
+            setTimeout(() => { 
+                btn.disabled = false; 
+                btn.innerHTML = "✅ TEMİZLİK YAPILDI";
+            }, 5000); 
         }
     }
+
+    // Enter tuşu ile giriş yapabilmek için
+    document.getElementById("password").addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+            checkLogin();
+        }
+    });
 </script>
 
 </body>
