@@ -1,79 +1,190 @@
-import time
-import logging
 import requests
+import time
 import random
+import logging
+from datetime import datetime
 
-# --- 1) GÜNCEL STREAM URL'LERİ ---
-STREAM_URLS = {
-    "Kapi_giris_sayaci": "https://:mVsETGYMTx-q0CyNNDSRZg@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAKSSpAoeTktcqA_ugttWuNsAAAAA",
-    "Temperature_AILE_ENG_WC": "https://:E-vsMlTLSlqSpRgaEwarBg@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAI96sXZqh0ohlpI9anZzQJAAAAAA",
-    "Temperature_BAY_WC": "https://:-CZYHDeORe-TQ3O63PDajw@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAKBlgzb7HEeRhcMVmYilqPMAAAAA",
-    "Temperature_BAYAN_WC": "https://:wAqlPCX3RYioKK-R0J8DrA@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAIYMHBDULk5mmiq7_5GMEq8AAAAA",
-    "Temperature_DEPO": "https://:jjvOi6LjR_uA9KXjzdY4YQ@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAALcp2i9jskQjmY8UuSqIUpsAAAAA",
-    "Temperature_SOGUK_ODA1_Z41": "https://:_3-EpqdJR96YjzU4OCQaXA@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAGFxapBLb0kSjBBAD8-qaKEAAAAA",
-    "Temperature_SOGUK_ODA2_Z40": "https://:nkN8jwrXRi-Juf6L7BKkeA@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAABahp9wNUEUDmjJrzl160SwAAAAA",
-    "Temperature_WC_HOL": "https://:G73lYfSDSk-0racFWZxadg@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAAM0inW0nIka3mLs_EiZuhwIAAAAA",
-    "depo_yakit_miktar": "https://:JV_OHSxfRF-gcBdx9hqrzg@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAABagL_xaC0KrvWjV8L7SXlsAAAAA",
-    "Temperature_MARKET": "https://:1JjT8wWvSUK4XsF9FJRO6w@tandem.autodesk.com/api/v1/timeseries/models/urn:adsk.dtm:c3alioHzTgyVZob6LD_HwQ/streams/AQAAANs1w0Vhgkn1l3Q5Xp8spvQAAAAA"
+# Sabitler
+ELEMENT_FLAGS_STREAM = 0x01000003
+QC_ELEMENT_FLAGS = 'n:a'
+QC_KEY = 'k'
+QC_NAME = 'n:n'
+
+# ================== AYARLAR ==================
+CLIENT_ID = "bAA3iF1cKgtiVw136hynke2CcumxBoRjYjvrUAUZYd1Na32E"
+CLIENT_SECRET = "z4Cijm4Ac2oxfQOy1vNqKd54CpL4Pmy3CJokKAdELJ0VKVPpTKewjvZsOPgf5KdA"
+FACILITY_ID = "urn:adsk.dtt:c3alioHzTgyVZob6LD_HwQ"
+
+# ==============================================================================
+# HASSAS AYAR LİSTESİ (BURASI SENİN KONTROLÜNDE)
+# Sol Taraf: Tandem'deki Bağlantı Adı (Stream Name)
+# Sağ Taraf: Oraya göndereceğimiz paketin etiketi (JSON Key)
+# ==============================================================================
+SENSOR_CONFIG = {
+    # --- KAPI VE YAKIT (Senin özel isim istediklerin) ---
+    "Kapi_sayaci": "Kapi_giris_sayaci", 
+    "Depo_yakit_miktar": "Depo_yakit_miktarı", 
+
+    # --- SICAKLIKLAR (Bunlar genelde standarttır) ---
+    # Eğer bunlardan biri de özel isim istiyorsa buradan değiştirebilirsin.
+    # Genelde sıcaklık için "z:Hg" kullanılır.
+    "Temperature_bay_wc": "z:Hg",
+    "Temperature_aile_wc": "z:Hg",
+    "Temperature_bayan_wc": "z:Hg",
+    "Temperature_depo": "z:Hg",
+    "Temperature_market": "z:Hg",
+    "Temperature_soguk_oda2": "z:Hg",
+    "Temperature_wc_hol": "z:Hg",
+    "Temperature_soguk_oda1": "z:Hg"
 }
 
-FIELD_MAP = {s: s for s in STREAM_URLS.keys()}
-SEND_INTERVAL = 5
+WAIT_TIME = 60 # Saniye
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-session = requests.Session()
+# ================== FONKSİYONLAR ==================
 
-# Merkez sıcaklık değerleri (Referans noktaları)
-BASE_TEMPS = {
-    "Temperature_AILE_ENG_WC": 22.0, "Temperature_BAY_WC": 21.5,
-    "Temperature_BAYAN_WC": 21.8, "Temperature_WC_HOL": 22.2,
-    "Temperature_MARKET": 20.0, "Temperature_DEPO": 18.5,
-    "Temperature_SOGUK_ODA1_Z41": -18.0, "Temperature_SOGUK_ODA2_Z40": -18.2
-}
-
-# Başlangıç durumu
-current_data = {**BASE_TEMPS, "depo_yakit_miktar": 850.0, "counter": 0}
-
-def update_logic():
-    # 1) SAYAÇ: %20 ihtimalle sadece artar
-    if random.random() < 0.7:
-        current_data["counter"] += 1
-    
-    # 2) SICAKLIKLAR: Merkez değerden +/- 3 derece dalgalanır
-    for key, base in BASE_TEMPS.items():
-        # Her adımda 0.4 dereceye kadar değişim (Daha belirgin grafik)
-        change = random.uniform(-0.4, 0.4)
-        new_val = current_data[key] + change
+def get_token():
+    url = "https://developer.api.autodesk.com/authentication/v2/token"
+    try:
+        r = requests.post(url, data={
+            'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET,
+            'grant_type': 'client_credentials', 'scope': 'data:read data:write'
+        }, headers={'Content-Type': 'application/x-www-form-urlencoded'})
         
-        # Sınır kontrolü (+/- 3 derece)
-        if new_val > base + 3: new_val = base + 3
-        if new_val < base - 3: new_val = base - 3
-        
-        current_data[key] = round(new_val, 2)
-    
-    # 3) YAKIT: Sürekli düşüş, 50'de dolum
-    current_data["depo_yakit_miktar"] = round(current_data["depo_yakit_miktar"] - random.uniform(5, 10), 2)
-    if current_data["depo_yakit_miktar"] < 50:
-        current_data["depo_yakit_miktar"] = 850.0
+        if r.status_code != 200:
+            print(f"❌ Token Alınamadı! Hata Kodu: {r.status_code}")
+            return None
+            
+        return r.json().get('access_token')
+    except Exception as e:
+        print(f"❌ Bağlantı Hatası (Token): {e}")
+        return None
 
-def send_data():
-    for s_name, url in STREAM_URLS.items():
-        # Veriyi sözlükten çek, yoksa varsayılan ata
-        val = current_data["counter"] if s_name == "Kapi_giris_sayaci" else current_data.get(s_name)
+def get_stream_ids(token, model_id):
+    """Sadece ID'leri bulur, gerisini senin listene bırakır"""
+    print("🔍 Tandem'e bağlanılıyor ve ID'ler çekiliyor...")
+    url = f"https://developer.api.autodesk.com/tandem/v1/modeldata/{model_id}/scan"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+    ready_sensors = []
+    
+    try:
+        # Hata korumalı istek
+        r = requests.post(url, headers=headers, json={"families": ["n"], "includeHistory": False, "skipArrays": True})
+        
+        if r.status_code != 200:
+            print(f"❌ Tarama Hatası (Kod {r.status_code}): {r.text}")
+            return []
+            
+        data = r.json()
+        
+        # Gelen verinin liste olduğundan emin ol (Senin aldığın hatayı çözer)
+        if not isinstance(data, list):
+            print("❌ Beklenmedik sunucu yanıtı (Liste gelmedi).")
+            return []
+            
+        print(f"{'SENSÖR':<25} | {'DURUM'} | {'PAKET ETİKETİ'}")
+        print("-" * 65)
+
+        for item in data:
+            if not isinstance(item, dict): continue
+            if item.get(QC_ELEMENT_FLAGS) != ELEMENT_FLAGS_STREAM: continue
+            
+            name = item.get(QC_NAME)
+            key_id = item.get(QC_KEY)
+            
+            # Eğer bu isim senin yukarıdaki LİSTEDE varsa işle
+            if name in SENSOR_CONFIG:
+                target_key = SENSOR_CONFIG[name]
+                
+                # Türü belirle (Simülasyon için)
+                s_type = "TEMP"
+                start_val = 22.0
+                if "yakit" in name.lower(): 
+                    s_type = "FUEL"
+                    start_val = 850.0
+                elif "kapi" in name.lower() or "sayac" in name.lower(): 
+                    s_type = "DOOR"
+                    start_val = 0
+                elif "soguk" in name.lower(): 
+                    start_val = -18.0
+
+                ready_sensors.append({
+                    "name": name,
+                    "stream_id": key_id,
+                    "json_key": target_key, # Senin belirlediğin anahtar
+                    "value": start_val,
+                    "type": s_type
+                })
+                print(f"{name:<25} | ✅ Hazır | {target_key}")
+            
+        print("-" * 65)
+        return ready_sensors
+
+    except Exception as e:
+        print(f"❌ Kritik Hata: {e}")
+        return []
+
+def simulate_and_send(token, model_id, sensors):
+    url = f"https://developer.api.autodesk.com/tandem/v1/timeseries/models/{model_id}/webhooks/generic"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+    print(f"\n--- ⏰ {datetime.now().strftime('%H:%M:%S')} Güncellemesi ---")
+    
+    for s in sensors:
+        # 1. MATEMATİK (Simülasyon)
+        if s["type"] == "TEMP":
+            s["value"] += random.uniform(-0.5, 0.5)
+            if "soguk" in s["name"].lower(): s["value"] = max(min(s["value"], -15), -22)
+            else: s["value"] = max(min(s["value"], 25), 18)
+        elif s["type"] == "DOOR":
+            if random.random() < 0.6: s["value"] += 1
+        elif s["type"] == "FUEL":
+            s["value"] -= random.uniform(2, 5)
+            if s["value"] < 50: s["value"] = 850.0
+        
+        s["value"] = round(s["value"], 2)
+        
+        # 2. GÖNDERİM (Senin seçtiğin anahtarla)
+        payload = {
+            "id": s["stream_id"],
+            s["json_key"]: s["value"] 
+        }
+        
         try:
-            session.post(url, json={FIELD_MAP[s_name]: float(val)}, timeout=5)
-        except Exception as e:
-            logging.error(f"Hata {s_name}: {e}")
+            r = requests.post(url, headers=headers, json=payload)
+            if r.status_code in [200, 204]:
+                print(f"📤 {s['name']:<25}: {s['value']}")
+            else:
+                print(f"⚠️ Gitmedi {s['name']}: {r.status_code}")
+        except: pass
+
+# ================== MAIN ==================
+
+def main():
+    print("🚀 MANUEL AYARLI TANDEM BOTU BAŞLATILIYOR...\n")
+    
+    token = get_token()
+    if not token: return
+    
+    model_id = FACILITY_ID.replace("dtt:", "dtm:")
+    
+    # Listeyi hazırla
+    sensors = get_stream_ids(token, model_id)
+    
+    if not sensors:
+        print("\n❌ Listendeki sensörler Tandem'de bulunamadı!")
+        print("👉 Lütfen kodun başındaki 'SENSOR_CONFIG' listesindeki isimlerin Tandem ile birebir aynı olduğundan emin ol.")
+        return
+        
+    print(f"\n✅ {len(sensors)} sensör başarıyla ayarlandı. Simülasyon başlıyor...\n")
+    
+    try:
+        while True:
+            token = get_token()
+            if token: simulate_and_send(token, model_id, sensors)
+            time.sleep(WAIT_TIME)
+    except KeyboardInterrupt:
+        print("\nDurduruldu.")
 
 if __name__ == "__main__":
-    start_run = time.time()
-    print("Sistem Başlatıldı. Her 6 Saatte Bir (veya QR okutulunca) Sıfırlanır.")
-    
-    # 6 saatlik döngü
-    while time.time() - start_run < 21000:
-        update_logic()
-        send_data()
-        logging.info(f"Yakit: {current_data['depo_yakit_miktar']} | Sayac: {current_data['counter']}")
-        time.sleep(SEND_INTERVAL)
-
-
+    main()
